@@ -1,0 +1,75 @@
+SERVER_SIDE_AND_API_GEMINI
+
+O Spring Boot atua como o Orquestrador Central que gerencia o estado, 
+a lógica de negócio e a comunicação entre os serviços de IA (Python e Gemini) 
+antes de finalizar a transação no banco de dados.
+
+#1. Camada de Apresentação (Controller)
+O processo começa e termina no NutriAIController.java.
+
+Etapa - Ação - Responsabilidade
+
+1.1 Entrada HTTP
+O NutriAIController recebe a requisição POST /api/v1/diagnose/run-analysis.
+O Controller recebe os parâmetros (patientId, weightKg, imageFile, etc.) do aplicativo mobile via multipart/form-data.
+
+1.2 Validação de Entrada
+O Controller realiza a validação inicial.
+Verifica se o imageFile não está vazio.
+
+1.3 Criação do DTO
+O Controller empacota todos os @RequestParam no DiagnosisInput DTO.
+Transfere a responsabilidade para a camada de Serviço.
+
+#2. Camada de Lógica de Negócios (Service)
+O NutriAIService.java executa a lógica e orquestra a comunicação com todos os serviços internos e externos.
+
+Etapa - Ação - Responsabilidade
+
+2.1 Busca e Pré-processamento
+O Service busca o Patient no PatientRepository.
+Usa o patientId para recuperar a dateOfBirth e o gender (dados necessários para cálculos clínicos).
+
+2.2 Cálculo de Z-score (Lógica de Negócios)
+O Service calcula a idade em meses e, em seguida, o zScoreImc.
+Esta é a lógica de domínio crucial. Ele usa os dados brutos (peso, altura, idade) para gerar a métrica clínica padronizada (zScoreImc).
+
+2.3 Preparação do Arquivo
+O Service converte o MultipartFile da imagem para uma String Base64 e define o mimeType.
+Essencial, pois a API Gemini espera a imagem neste formato dentro do JSON de requisição.
+
+2.4 Chamada ao Serviço Python (XGBoost)
+O Service cria o XGBoostRequest (com age_months, z_score_imc, etc.) e chama o XGBoostClient.
+Delega o diagnóstico tabular. O Spring envia o JSON em snake_case e espera o preliminaryDiagnosis de volta.
+
+2.5 Verificação (Tratamento de Erro)(Crucial) 
+O Service checa se a resposta do XGBoost não é nula antes de prosseguir.
+Protege o fluxo contra falhas do serviço Python, evitando NullPointerException (NPE) nas etapas seguintes.
+
+2.6 Montagem do Prompt Multimodal
+O Service constrói o prompt de texto detalhado, injetando o resultado do XGBoost, o Z-score e os dados do paciente.
+Prepara o input de raciocínio para o Gemini, fornecendo contexto máximo.
+
+2.7 Chamada ao Serviço Gemini
+O Service chama o GeminiClient.getFinalDiagnosis().
+Envia o prompt de texto e a imagem Base64. O WebClient lida com a comunicação REST.
+
+
+#3. Camada de Acesso a Dados (Persistence/Repository)
+
+Etapa - Ação - Responsabilidade
+
+3.1 Recebimento do Diagnóstico Final
+O Service recebe o texto do Diagnóstico Final Justificado do Gemini.
+O valor retornado é a justificativa completa, pronta para ser salva.
+
+3.2 Persistência (Transação)
+O Service cria um novo DiagnosisRecord e preenche todos os campos.
+Mapeia todos os resultados (Z-score, resultado XGBoost e resultado Gemini) para a Entidade JPA.
+
+3.3 Armazenamento no MySQL
+O Service chama o diagnosisRecordRepository.save(record).
+Finaliza a transação, persistindo o novo registro no banco de dados.
+
+#4. Ciclo Final
+O DiagnosisRecord persistido é retornado do Service para o Controller, que o empacota em um ResponseEntity (status 200 OK) e o envia de volta ao aplicativo mobile, concluindo o ciclo de diagnóstico.

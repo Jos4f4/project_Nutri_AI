@@ -1,0 +1,31 @@
+SERVER_SIDE_AND_API_GEMINI
+
+# 1. Rodar o servidor
+Como o servidor Tom Cat já vem embutido no Spring STS,
+temos apenas o trabalho de rodar a aplicação.
+
+SERVICE_AI
+
+# 1. Cria o ambiente virtual
+python3 -m venv .venv
+
+# 2. Ativar o ambiente virtual do python
+source .venv/bin/activate  # No Linux/macOS
+# ou .venv\Scripts\activate  # No Windows
+
+# 3 ================================================================================
+pip install -r requirements.txt
+
+pandas
+numpy
+scikit-learn
+xgboost
+fastapi
+uvicorn[standard] # Servidor ASGI para rodar o FastAPI
+
+==================================================================================
+# 4
+python.exe -m pip install --upgrade pip
+
+#5
+uvicorn src.predict_service:app --reload

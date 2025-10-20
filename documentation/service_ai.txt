@@ -1,0 +1,66 @@
+SERVICE_AI
+
+o fluxo do componente de IA em Python atua como um serviço de apoio especializado em análise tabular, utilizando o modelo XGBoost.
+
+O fluxo aqui é mais focado em processamento de dados e Machine Learning do que em orquestração.
+
+O serviço Python (predict_service.py) é construído sobre o FastAPI e é responsável por pegar dados brutos do Spring Boot e transformá-los em uma classificação preliminar de risco.
+
+#1. Inicialização do Serviço (Preparação)
+
+Etapa - Ação - Componente Python
+
+1.1 Carregamento do Modelo
+O script predict_service.py executa o try-catch para carregar o modelo xgboost_nutrition_model.json da pasta /models.
+XGBoost Classifier
+
+1.2 Definição da API
+O FastAPI inicializa e define o endpoint POST /api/v1/diagnose/tabular.
+FastAPI
+
+1.3 Validação de Esquema
+O modelo TabularDataInput (Pydantic) é ativado.
+Pydantic/FastAPI
+
+#2. Execução da Requisição (Recebimento dos Dados)
+
+O fluxo começa quando o Spring Boot (via XGBoostClient) envia a requisição HTTP.
+
+Etapa - Ação - Componente Python
+
+2.1 Recebimento do JSONO endpoint /diagnose/tabular recebe o corpo da requisição JSON.
+FastAPI
+
+2.2 Validação de EntradaO FastAPI tenta mapear o JSON de entrada para a classe TabularDataInput.
+PydanticSe Falha (422): Se o JSON tiver nomes incorretos (camelCase em vez de snake_case) ou tipos errados, o Pydantic rejeita a requisição e retorna o erro 422 Unprocessable Entity.
+(Ponto Crítico)
+
+2.3 Extração dos FeaturesSe for validado, a função diagnose_tabular extrai as variáveis tipadas: age_months, z_score_imc, is_edema.
+Função Python
+
+2.4 Conversão para DataFrameOs dados são empacotados em um Pandas DataFrame de 1 linha.
+Pandas
+
+#3. Análise e Predição (Machine Learning)
+
+Esta é a etapa central, onde o modelo de IA toma a decisão.EtapaAçãoComponente Python
+
+3.1 ClassificaçãoO DataFrame é alimentado no modelo treinado (model.predict(df)).
+XGBoost
+
+3.2 Geração da SaídaO XGBoost retorna uma classe numérica (ex: 0 para Normal, 3 para Grave).
+XGBoost
+
+3.3 Mapeamento de RótulosO código usa o LABEL_MAP para converter o número (ex: 3) em um texto de diagnóstico (ex: "Desnutrição Grave").
+Função Python
+
+#4. Resposta FinalEtapaAçãoComponente Python
+
+4.1 Montagem do DTOO resultado final (texto e ID) é empacotado no DTO de resposta DiagnosisOutput.
+FastAPI/Pydantic
+
+4.2 Envio da RespostaA resposta JSON ({preliminary_diagnosis: "...", risk_category_id: 3}) é enviada de volta ao Spring Boot.
+FastAPI
+
+O Spring Boot recebe este resultado e o utiliza imediatamente na próxima etapa: a montagem do prompt e a chamada à API Gemini.
+

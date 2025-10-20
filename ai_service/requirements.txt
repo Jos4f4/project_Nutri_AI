@@ -1,0 +1,9 @@
+# Bibliotecas para Data Science e Machine Learning
+pandas
+numpy
+scikit-learn
+xgboost
+
+# Bibliotecas para o Serviço REST API
+fastapi
+uvicorn[standard] # Servidor ASGI para rodar o FastAPI
