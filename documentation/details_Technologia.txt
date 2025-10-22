@@ -1,0 +1,61 @@
+Detalhamento das Tecnologias do Projeto NutriAI
+
+1. Java e Spring Boot (A Plataforma de Orquestração)
+Java: É a base do backend. Escolhida por sua estabilidade, performance em ambientes corporativos e forte tipagem (o que ajuda a gerenciar os dados clínicos).
+
+Spring Boot: Um framework que simplifica o desenvolvimento em Java, eliminando a complexidade da configuração inicial. Ele fornece:
+
+Injeção de Dependência: Gerencia automaticamente todos os componentes (@Service, @Component) e seus relacionamentos.
+
+Autoconfiguração: Configura automaticamente o servidor web (Tomcat) e a integração com tecnologias como JPA e o WebClient.
+
+Função no NutriAI: Atua como o Orquestrador central, controlando o fluxo de dados desde o Controller até o banco de dados, e coordenando as chamadas para as IAs.
+
+2. WebClient (A Ponte de Comunicação)
+Tecnologia: É o cliente HTTP reativo e não-bloqueante do ecossistema Spring (parte do Spring WebFlux).
+
+Detalhe Técnico: Ao contrário do antigo RestTemplate (que é bloqueante), o WebClient permite que seu backend mantenha a performance e a escalabilidade, mesmo enquanto espera pelas respostas de serviços lentos (como uma requisição à IA).
+
+Função no NutriAI: É a espinha dorsal dos Clients (XGBoostClient e GeminiClient). É responsável por:
+
+Configurar timeouts para evitar travamentos.
+
+Traduzir o DTO Java em JSON.
+
+Lidar com a complexidade da comunicação REST de forma eficiente.
+
+3. Python e FastAPI (A Plataforma de Execução do ML)
+Python: A linguagem de facto para Machine Learning, oferecendo acesso fácil às bibliotecas de IA e ciência de dados.
+
+FastAPI: Um framework web moderno e extremamente rápido para Python.
+
+Detalhe Técnico: É usado para transformar o modelo de ML do XGBoost em um serviço REST leve e de alta performance que o Spring Boot possa consumir. Sua principal força é o uso do Pydantic para validação automática de dados, que rejeita o JSON inválido (dando o erro 422) antes que ele chegue ao modelo.
+
+Função no NutriAI: Garante que a análise tabular (XGBoost) seja executada rapidamente em um ambiente nativo de ML (Python) e que a comunicação seja eficiente.
+
+4. XGBoost (O Modelo de Diagnóstico Tabular)
+Tecnologia: Abreviação de eXtreme Gradient Boosting. É um algoritmo de ensemble learning baseado em árvores de decisão.
+
+Detalhe Técnico: É notório por sua alta precisão e velocidade em dados estruturados (dados tabulares), tornando-o ideal para a classificação de risco clínico. Ele lida bem com relações não-lineares, típicas de dados biológicos e antropométricos.
+
+Função no NutriAI: Fornece o diagnóstico preliminar (baseline) com base nos Z-scores, servindo como uma primeira camada de validação antes da análise mais complexa do Gemini.
+
+5. Gemini API (O Raciocínio Multimodal)
+Tecnologia: Modelo de fundação de IA do Google (como gemini-2.5-flash).
+
+Detalhe Técnico: É um modelo multimodal nativo, o que significa que ele pode processar informações de diferentes tipos (modalidades) simultaneamente.
+
+Função no NutriAI: É a camada de inteligência contextual final. Ele recebe:
+
+O prompt de texto (dados clínicos + resultado XGBoost).
+
+A imagem clínica (para análise visual).
+
+Sua função é correlacionar as evidências visuais (emaciação, edema) com as métricas numéricas (Z-scores) e fornecer um diagnóstico final justificado.
+
+6. MySQL (A Persistência)
+Tecnologia: Sistema Gerenciador de Banco de Dados Relacional (SGBDR).
+
+Detalhe Técnico: Escolhido por sua robustez, maturidade e ampla adoção. Usado com o Spring Data JPA para mapeamento de entidades.
+
+Função no NutriAI: Armazenar os dados permanentes (tabela Patient) e, crucialmente, persistir os resultados detalhados do diagnóstico (DiagnosisRecord), incluindo o campo finalGeminiDiag (tratado como TEXT ou CLOB via @Lob) para auditoria e histórico médico.

@@ -1,0 +1,44 @@
+Variables
+
+Detalhamento Completo das Variáveis do Projeto NutriAI
+I. Variáveis Antropométricas e Clínicas (Entrada Bruta)
+Essas variáveis são a base do diagnóstico, coletadas do paciente e enviadas ao sistema.
+
+patientId (Long):Significado: Identificador único do paciente.
+Papel: Usado para buscar no banco de dados (PatientRepository) a dateOfBirth e o gender, dados essenciais para o cálculo do Z-score.
+
+weightKg (double):Significado: Peso do paciente em quilogramas.
+Papel: Variável bruta utilizada para calcular o Índice de Massa Corporal (IMC).
+
+heightCm (double):Significado: Altura ou comprimento do paciente em centímetros.
+Papel: Variável bruta utilizada para calcular o IMC (Peso / Altura²).
+
+isEdema (boolean/int):Significado: Presença de Edema (inchaço) nas extremidades. Clinicamente, um sinal primário de Kwashiorkor (desnutrição grave).
+Papel: Variável binária de alta importância (1 para SIM, 0 para NÃO) enviada diretamente ao XGBoost e citada no prompt do Gemini.
+
+imageFile (MultipartFile):Significado: A foto clínica da criança (ex: avaliação de emaciação ou inchaço).
+Papel: O dado multimodal crucial. É a evidência visual que o Gemini usa para confirmar ou refutar o diagnóstico numérico do XGBoost.
+
+II. Variáveis de Processamento e Métricas de IA
+Essas variáveis são calculadas pelo Spring Boot ou geradas pelo serviço Python.
+
+ageMonths (int):Significado: Idade exata do paciente expressa em meses.
+Papel: Calculada no NutriAIService a partir da dateOfBirth. Essencial porque os padrões de crescimento da OMS (para Z-scores) são referenciados mês a mês.
+
+zScoreImc (double):Significado: Z-score de IMC por Idade. É a métrica padrão da OMS que mede quantos desvios padrão o IMC do paciente está da média de uma população saudável de referência.Papel: A métrica de entrada mais importante para o XGBoost. Define o diagnóstico numérico: $Z \le -3$ (Grave), $-3 < Z \le -2$ (Moderada), etc.
+
+xgbDiagnosis (String):Significado: O resultado do diagnóstico de risco preliminar retornado pelo serviço Python.Papel: Serve como reforço e dado estruturado. É injetado no prompt do Gemini para guiar a análise e ser validado pela imagem.
+
+prompt (String):Significado: O texto contextual detalhado enviado ao Gemini.Papel: É a instrução de raciocínio. Contém todos os dados clínicos (zScoreImc, xgbDiagnosis) e instrui o Gemini a atuar como especialista em nutrição para emitir e justificar o diagnóstico.
+
+III. Variáveis de Persistência e Resultado Final
+Essas variáveis representam a saída do sistema, salvas no DiagnosisRecord.
+
+base64Image (String):Significado: A imagem clínica original codificada em Base64.
+Papel: Formato de transporte. É como o Spring Boot envia o arquivo de imagem via JSON para a API Gemini.
+
+finalGeminiDiag (String com @Lob):Significado: O Diagnóstico Final Completo e Justificado fornecido pelo Gemini.
+Papel: O output principal e mais valioso do sistema. O mapeamento @Lob é obrigatório para que esta longa string de texto seja salva no MySQL.
+
+imageUrl (String):Significado: O caminho ou URL (simulado) para o local onde a imagem foi armazenada (em um ambiente de produção seria um S3 ou Google Cloud Storage).
+Papel: Usado para referência e recuperação da imagem no histórico do paciente.

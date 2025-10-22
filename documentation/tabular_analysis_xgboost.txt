@@ -1,4 +1,4 @@
-SERVICE_AI
+TABULAR_ANALYSIS_XGBOOST
 
 o fluxo do componente de IA em Python atua como um serviço de apoio especializado em análise tabular, utilizando o modelo XGBoost.
 
